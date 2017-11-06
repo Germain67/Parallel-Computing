@@ -3,10 +3,24 @@
 #include <omp.h>
 #include <string.h>
 
+int* array1 = NULL;
+int* array2 = NULL;
 
+void initArrays();
 
 int main (int argc, char const *argv[]){
 
+
+  initArrays();
+
+
+
+  return 0;
+}
+
+
+void initArrays()
+{
   FILE *myFile;
   myFile = fopen("fichier_test", "r");
   if (myFile == NULL)
@@ -33,7 +47,6 @@ int main (int argc, char const *argv[]){
       }
     }
   }
-  printf("Nombre de space: %d\n", (numberChar));
   fclose(myFile);
 
   //-------------
@@ -56,9 +69,6 @@ int main (int argc, char const *argv[]){
   {
       printf("Number is: %d\n\n", numberArray[i]);
   }
+
   fclose(myFile);
-
-
-
-  return 0;
 }
