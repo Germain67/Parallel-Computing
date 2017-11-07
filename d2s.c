@@ -3,41 +3,38 @@
 #include <omp.h>
 #include <string.h>
 
-int* array1 = NULL;
-int* array2 = NULL;
+int* elems = NULL;
 
-int initArrays()
+// Init array and fill elems with the values
+int initArray()
 {
-  char fileBuffer[1024];
+  int arraySize, i;
 
-  if (fgets(fileBuffer, sizeof(fileBuffer), stdin) == NULL)
-      return -1; // Input error / EOF
-  printf("File content : %s\n", fileBuffer); // ** will help checking for the presence of white spaces.
+  scanf("%d", &arraySize);
 
-  //read file into array
-  int numberArray[numberChar];
+  printf("La taille du tableau est: %d\n", 2*arraySize);
 
-
-  for (i = 0; i < numberChar; i++)
+  if(arraySize > 0)
   {
-      fscanf(myFile, "%d", &numberArray[i]);
+    elems = malloc(2*arraySize*sizeof(int));
+    for(i=0; i< 2*arraySize; i++)
+    {
+      scanf("%d", &elems[i]);
+    }
   }
-
-  for (i = 0; i < numberChar; i++)
-  {
-      printf("Number is: %d\n\n", numberArray[i]);
-  }
-
-  fclose(myFile);
   return 0;
 }
 
 int main (int argc, char const *argv[]){
-  if (initArrays() == 0){
-    printf("Successfully initialized the arrays\n");
+
+  if (initArray() == 0){
+    printf("Successfully initialized the array\n");
   }
   else{
     printf("Something bad happened =( \n");
   }
+
+  free(elems);
   return 0;
+
 }
