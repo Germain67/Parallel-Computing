@@ -6,55 +6,13 @@
 int* array1 = NULL;
 int* array2 = NULL;
 
-void initArrays();
-
-int main (int argc, char const *argv[]){
-
-
-  initArrays();
-
-
-
-  return 0;
-}
-
-
-void initArrays()
+int initArrays()
 {
-  FILE *myFile;
-  myFile = fopen("fichier_test", "r");
-  if (myFile == NULL)
-     exit(EXIT_FAILURE);
+  char fileBuffer[1024];
 
-  size_t len = 0;
-  int i;
-  char* line = NULL;
-  int lineSize = getline(&line, &len, myFile);
-  int numberChar = 0;
-  int previousBlank = 0;
-  for(i=0;i<lineSize;i++)
-  {
-    if(line[i]==' ')
-    {
-      previousBlank=1;
-    }
-    else
-    {
-      if(previousBlank==1)
-      {
-        numberChar+=1;
-        previousBlank=0;
-      }
-    }
-  }
-  fclose(myFile);
-
-  //-------------
-
-
-  myFile = fopen("fichier_test", "r");
-  if (myFile == NULL)
-     exit(EXIT_FAILURE);
+  if (fgets(fileBuffer, sizeof(fileBuffer), stdin) == NULL)
+      return -1; // Input error / EOF
+  printf("File content : %s\n", fileBuffer); // ** will help checking for the presence of white spaces.
 
   //read file into array
   int numberArray[numberChar];
@@ -71,4 +29,15 @@ void initArrays()
   }
 
   fclose(myFile);
+  return 0;
+}
+
+int main (int argc, char const *argv[]){
+  if (initArrays() == 0){
+    printf("Successfully initialized the arrays\n");
+  }
+  else{
+    printf("Something bad happened =( \n");
+  }
+  return 0;
 }
