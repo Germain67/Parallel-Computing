@@ -26,12 +26,14 @@ int main (int argc, char const *argv[]){
 
     int* res = malloc(2*n*sizeof(int));
 
-    clock_t begin = clock();
+    double start_time = omp_get_wtime();
+
+    omp_set_dynamic(0);     // Explicitly disable dynamic teams
+    omp_set_num_threads(48); // Use 4 threads for all consecutive parallel regions
     pMerge(elems, 0, n-1, n, 2*n-1, res, 0);
-    clock_t end = clock();
 
+    double time_spent = omp_get_wtime() - start_time;
 
-    double time_spent = (double)(end - begin) / CLOCKS_PER_SEC;
     printf("Execution time : %f seconds\n", time_spent);
     //printArray(res);
 
@@ -117,18 +119,19 @@ void pMerge(int* T, int p1, int r1, int p2, int r2, int* A, int p3)
     invertVar(&r1, &r2);
     invertVar(&n1, &n2);
   }
-  if(n1 == 0)
-  {
-    return;
-  }
-  else
+  if(n1 > 0)
   {
     int q1 = (p1+r1)/2;
     int q2 = binarySearch(T[q1], T, p2, r2);
     int q3 = p3 + (q1-p1) + (q2 - p2);
     A[q3] = T[q1];
-    pMerge(T, p1, q1-1, p2, q2-1, A, p3);
-    pMerge(T, q1+1, r1, q2, r2, A, q3+1);
+    #pragma omp parallel sections
+    {
+      #pragma omp section
+      pMerge(T, p1, q1-1, p2, q2-1, A, p3);
+      #pragma omp section
+      pMerge(T, q1+1, r1, q2, r2, A, q3+1);
+    }
   }
 }
 
