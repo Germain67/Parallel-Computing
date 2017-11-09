@@ -5,55 +5,50 @@
 #include <time.h>
 
 //Prototypes
-int initArray();
+int initArray(int** T);
 int max(int a, int b);
 void invertVar(int* a, int* b);
 int binarySearch(int x, int* T, int p, int r);
 void pMerge(int* T, int p1, int r1, int p2, int r2, int* A, int p3);
-void printArray(int* T);
-
-//Global variables
-int* elems = NULL;
-int n = 0;
-
+void printArray(int* T, int n);
 
 int main (int argc, char const *argv[]){
 
-  if (initArray() == 0)
+  int* T;
+  int n = initArray(&T);
+  if (n > 0)
   {
     printf("Successfully initialized the array\n");
-    //printArray(elems);
-
-    int* res = malloc(2*n*sizeof(int));
-
+    //printArray(T, n);
+    int* A = malloc(2*n*sizeof(int));
     double start_time = omp_get_wtime();
+    //omp_set_dynamic(0);     // Explicitly disable dynamic teams
+    omp_set_num_threads(24); // Use 4 threads for all consecutive parallel regions
 
-    omp_set_dynamic(0);     // Explicitly disable dynamic teams
-    omp_set_num_threads(48); // Use 4 threads for all consecutive parallel regions
     #pragma omp parallel
-    #pragma single nowait
-    pMerge(elems, 0, n-1, n, 2*n-1, res, 0);
+    {
+      #pragma single //nowait
+        pMerge(T, 0, n-1, n, 2*n-1, A, 0);
+    }
 
     double time_spent = omp_get_wtime() - start_time;
 
     printf("Execution time : %f seconds\n", time_spent);
-    //printArray(res);
-
-    free(res);
+    //printArray(A, n);
+    free(T);
+    free(A);
   }
   else
   {
     printf("Something bad happened =( \n");
   }
 
-  free(elems);
-
   return 0;
 
 }
 
 // Init array and fill elems with the values
-int initArray()
+int initArray(int** T)
 {
   int arraySize, i;
 
@@ -63,14 +58,13 @@ int initArray()
 
   if(arraySize > 0)
   {
-    n = arraySize;
-    elems = malloc(2*arraySize*sizeof(int));
+    *T = malloc(2*arraySize*sizeof(int));
     for(i=0; i< 2*arraySize; i++)
     {
-      scanf("%d", &elems[i]);
+      scanf("%d", &(*T)[i]);
     }
   }
-  return 0;
+  return arraySize;
 }
 
 //Invert variables values by using xor principle
@@ -121,21 +115,21 @@ void pMerge(int* T, int p1, int r1, int p2, int r2, int* A, int p3)
     invertVar(&r1, &r2);
     invertVar(&n1, &n2);
   }
-  if(n1 > 0)
+  if(n1 != 0)
   {
     int q1 = (p1+r1)/2;
     int q2 = binarySearch(T[q1], T, p2, r2);
     int q3 = p3 + (q1-p1) + (q2 - p2);
     A[q3] = T[q1];
     #pragma omp task
-    pMerge(T, p1, q1-1, p2, q2-1, A, p3);
+      pMerge(T, p1, q1-1, p2, q2-1, A, p3);
     #pragma omp task
-    pMerge(T, q1+1, r1, q2, r2, A, q3+1);
+      pMerge(T, q1+1, r1, q2, r2, A, q3+1);
   }
 }
 
 //Print the array in stdout
-void printArray(int* T)
+void printArray(int* T, int n)
 {
   int i;
   for(i=0; i<2*n; i++)

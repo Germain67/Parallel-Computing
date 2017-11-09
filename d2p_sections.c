@@ -29,7 +29,7 @@ int main (int argc, char const *argv[]){
     double start_time = omp_get_wtime();
 
     omp_set_dynamic(0);     // Explicitly disable dynamic teams
-    omp_set_num_threads(48); // Use 4 threads for all consecutive parallel regions
+    omp_set_num_threads(24); // Use 4 threads for all consecutive parallel regions
     pMerge(elems, 0, n-1, n, 2*n-1, res, 0);
 
     double time_spent = omp_get_wtime() - start_time;
