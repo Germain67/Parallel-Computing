@@ -13,7 +13,6 @@ void pMerge(int* T, int p1, int r1, int p2, int r2, int* A, int p3);
 void printArray(int* T, int n);
 
 int main (int argc, char const *argv[]){
-
   int* T;
   int n = initArray(&T);
   if (n > 0)
@@ -68,14 +67,14 @@ int initArray(int** T)
 }
 
 //Invert variables values by using xor principle
-void invertVar(int* a, int* b)
+/*void invertVar(int* a, int* b)
 {
   if (a != b) {
     *a ^= *b;
     *b ^= *a;
     *a ^= *b;
   }
-}
+}*/
 
 //Get the highest var between a and b
 int max(int a, int b)
@@ -111,9 +110,13 @@ void pMerge(int* T, int p1, int r1, int p2, int r2, int* A, int p3)
   int n2 = r2-p2+1;
   if(n1 < n2)
   {
-    invertVar(&p1, &p2);
+    int t;
+    t = p1; p1 = p2; p2 = t;
+    t = r1; r1 = r2; r2 = t;
+    t = n1; n1 = n2; n2 = t;
+    /* invertVar(&p1, &p2);
     invertVar(&r1, &r2);
-    invertVar(&n1, &n2);
+    invertVar(&n1, &n2); */
   }
   if(n1 != 0)
   {

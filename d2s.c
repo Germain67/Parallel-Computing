@@ -18,9 +18,8 @@ int main (int argc, char const *argv[]){
 
   if (initArray() == 0)
   {
-    printf("lol1");
     printf("Successfully initialized the array\n");
-    printArray(elems);
+    //printArray(elems);
 
     int* res = malloc(2*n*sizeof(int));
 
@@ -33,7 +32,7 @@ int main (int argc, char const *argv[]){
 
     double time_spent = (double)(end - begin) / CLOCKS_PER_SEC;
     printf("Execution time : %f seconds\n", time_spent);
-    printArray(res);
+    //printArray(res);
 
     free(res);
   }
