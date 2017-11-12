@@ -20,13 +20,14 @@ int main (int argc, char const *argv[]){
     printf("Successfully initialized the array\n");
     //printArray(T, n);
     int* A = malloc(2*n*sizeof(int));
+    omp_set_num_threads(24); // Use 4 threads for all consecutive parallel regions
+    printf("Threads created \n");
     double start_time = omp_get_wtime();
     //omp_set_dynamic(0);     // Explicitly disable dynamic teams
-    omp_set_num_threads(24); // Use 4 threads for all consecutive parallel regions
 
     #pragma omp parallel
     {
-      #pragma single //nowait
+      #pragma omp single nowait
         pMerge(T, 0, n-1, n, 2*n-1, A, 0);
     }
 
