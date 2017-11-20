@@ -11,32 +11,43 @@ void invertVar(int* a, int* b);
 int binarySearch(int x, int* T, int p, int r);
 void pMerge(int* T, int p1, int r1, int p2, int r2, int* A, int p3);
 void printArray(int* T, int n);
+void pMergeSeq(int* T, int p1, int r1, int p2, int r2, int* A, int p3);
+
 
 int main (int argc, char const *argv[]){
+
   int* T;
   int n = initArray(&T);
+
   if (n > 0)
   {
     printf("Successfully initialized the array\n");
-    //printArray(T, n);
-    int* A = malloc(2*n*sizeof(int));
-    omp_set_num_threads(24); // Use 4 threads for all consecutive parallel regions
-    printf("Threads created \n");
-    double start_time = omp_get_wtime();
-    //omp_set_dynamic(0);     // Explicitly disable dynamic teams
 
-    #pragma omp parallel
-    {
-      #pragma omp single nowait
-        pMerge(T, 0, n-1, n, 2*n-1, A, 0);
+    int nbThreads[8] = { 1, 2, 4, 8, 12, 16, 24, 48 };
+    int i;
+    int j;
+
+
+    for(i = 0; i < 8; i++){
+
+      int* A = malloc(2*n*sizeof(int));
+      omp_set_num_threads(nbThreads[i]); // Use nbThreads for all consecutive parallel regions
+      double start_time = omp_get_wtime();
+      //omp_set_dynamic(0);     // Explicitly disable dynamic teams
+      #pragma omp parallel shared(T, A)
+      {
+        #pragma omp single nowait
+          pMerge(T, 0, n-1, n, 2*n-1, A, 0);
+      }
+
+      double time_spent = omp_get_wtime() - start_time;
+      printf("Execution time on %d threads : %f seconds\n", nbThreads[i], time_spent);
+      printArray(A,n);
+      free(A);
+
     }
 
-    double time_spent = omp_get_wtime() - start_time;
-
-    printf("Execution time : %f seconds\n", time_spent);
-    //printArray(A, n);
     free(T);
-    free(A);
   }
   else
   {
@@ -67,15 +78,7 @@ int initArray(int** T)
   return arraySize;
 }
 
-//Invert variables values by using xor principle
-/*void invertVar(int* a, int* b)
-{
-  if (a != b) {
-    *a ^= *b;
-    *b ^= *a;
-    *a ^= *b;
-  }
-}*/
+
 
 //Get the highest var between a and b
 int max(int a, int b)
@@ -119,7 +122,7 @@ void pMerge(int* T, int p1, int r1, int p2, int r2, int* A, int p3)
     invertVar(&r1, &r2);
     invertVar(&n1, &n2); */
   }
-  if(n1 != 0)
+  if(n1 > 100)
   {
     int q1 = (p1+r1)/2;
     int q2 = binarySearch(T[q1], T, p2, r2);
@@ -129,6 +132,52 @@ void pMerge(int* T, int p1, int r1, int p2, int r2, int* A, int p3)
       pMerge(T, p1, q1-1, p2, q2-1, A, p3);
     #pragma omp task
       pMerge(T, q1+1, r1, q2, r2, A, q3+1);
+  }
+  else
+  {
+	  pMergeSeq(T, p1, r1, p2, r2, A, p3);
+  }
+}
+
+
+void pMergeSeq(int* T, int p1, int r1, int p2, int r2, int* A, int p3)
+{
+  int i = p1;
+  int j = p2;
+  int k = p3;
+
+  //Start the merge
+  while (i <= r1 && j <= r2)
+  {
+
+    if(T[i] <= T[j])
+    {
+      A[k] = T[i];
+      i++;
+      k++;
+    }
+    else
+    {
+      A[k] = T[j];
+      j++;
+      k++;
+    }
+  }
+
+  //Finish the first array
+  while (i <= r1)
+  {
+    A[k] = T[i];
+    i++;
+    k++;
+  }
+
+  //Finish the second array
+  while (j <= r2)
+  {
+    A[k] = T[j];
+    k++;
+    j++;
   }
 }
 

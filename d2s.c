@@ -1,6 +1,5 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <omp.h>
 #include <string.h>
 #include <time.h>
 
@@ -20,27 +19,21 @@ int main (int argc, char const *argv[]){
   {
     printf("Successfully initialized the array\n");
     //printArray(elems);
+    struct timeval st, et;
+		int* res = malloc(2*n*sizeof(int));
+		gettimeofday(&st,NULL);
+		pMergeSeq(res);
+		gettimeofday(&et,NULL);
+		int elapsed = ((et.tv_sec - st.tv_sec) * 1000000) + (et.tv_usec - st.tv_usec);
+		printf("Execution time : %d micro seconds\n", elapsed);
+		printArray(res);
+		free(res);
 
-    int* res = malloc(2*n*sizeof(int));
-
-    clock_t begin = clock();
-
-    pMergeSeq(res);
-
-    clock_t end = clock();
-
-
-    double time_spent = (double)(end - begin) / CLOCKS_PER_SEC;
-    printf("Execution time : %f seconds\n", time_spent);
-    //printArray(res);
-
-    free(res);
   }
   else
   {
     printf("Something bad happened =( \n");
   }
-
   free(elems);
 
   return 0;
@@ -54,7 +47,7 @@ int initArray()
 
   scanf("%d", &arraySize);
 
-  printf("La taille du tableau est: %d\n", 2*arraySize);
+  printf("Array size: %d\n", 2*arraySize);
 
   if(arraySize > 0)
   {
@@ -105,7 +98,7 @@ void pMergeSeq(int* res)
   //Finish the second array
   while (j < n)
   {
-    res[k] = elems[j];
+    res[k] = elems[j+n];
     k++;
     j++;
   }
