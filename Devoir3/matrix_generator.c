@@ -3,6 +3,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <math.h>
 
 int min;
 int max;
@@ -15,6 +16,7 @@ int rand_a_b(int a, int b){
 void write_matrix(int size, FILE* fptr) {
   int num;
   int i;
+  //Fill 2 matrix of size 2^n * 2^n
   for (i = 0; i < size*size*2; i++) {
     fprintf(fptr, "%d ", rand_a_b(min, max));
   }
@@ -30,10 +32,10 @@ int main (int argc, char *argv[]) {
   char buffer[50];
   int array_size;
 
-  printf("Matrix size : (n*n)*2 ?\n");
+  printf("Enter n value for 2 matrixs of size (2^n)^2 : \n");
   scanf("%d", &array_size);
-
-  sprintf (buffer, "./matrixs/matrix_%d.txt", array_size);
+  sprintf (buffer, "./matrixs/matrix_2_pow_%d.txt", array_size);
+  array_size = pow(2,array_size);
   FILE *fptr;
   fptr = fopen(buffer, "w");
 
