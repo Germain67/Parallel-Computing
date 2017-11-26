@@ -51,4 +51,5 @@ modules.order
 Module.symvers
 Mkfile.old
 dkms.conf
-array.txt
+array_*.txt
+matrix_*.txt
