@@ -7,46 +7,61 @@
 
 
 //Prototypes
-int* initMatrice();
-void pMergeSeq(int* res);
+int* initMatrix();
 void printMatrix(int* T);
 
+//Size of the matrix
 int n = -1;
-
 MPI_Status status;
 
+//Command line arguments
+int showMatrix = 0;
+int showTime = 0;
+int verbose = 0;
+
 int main (int argc, char const *argv[]){
+  int argIndex;
 
-	// Initialize the MPI environment
-    MPI_Init(NULL, NULL);
+  //Check command line arguments
+  for(argIndex = 1; argIndex < argc; argIndex++){
+    if(strcmp(argv[argIndex], "-p") == 0){
+      showMatrix = 1;
+    }
+    else if(strcmp(argv[argIndex], "-v") == 0){
+      verbose = 1;
+    }
+    else if(strcmp(argv[argIndex], "-t") == 0){
+      showTime = 1;
+    }
+  }
 
-    // Get the number of processes
-    int world_size;
-    MPI_Comm_size(MPI_COMM_WORLD, &world_size);
+  // Initialize the MPI environment
+  MPI_Init(NULL, NULL);
 
-    // Get the rank of the process
-    int world_rank;
-    MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
+  // Get the number of processes
+  int world_size;
+  MPI_Comm_size(MPI_COMM_WORLD, &world_size);
 
-    // Get the name of the processor
-    char processor_name[MPI_MAX_PROCESSOR_NAME];
-    int name_len;
-    MPI_Get_processor_name(processor_name, &name_len);
+  // Get the rank of the process
+  int world_rank;
+  MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
 
-    // Print off a hello world message
-    if(argc > 1 && strcmp(argv[1], "-p") == 0)
-    {
-      printf("-- Hello world from processor %s, rank %d"
-             " out of %d processors\n",
-             processor_name, world_rank, world_size);
-     }
+  // Get the name of the processor
+  char processor_name[MPI_MAX_PROCESSOR_NAME];
+  int name_len;
+  MPI_Get_processor_name(processor_name, &name_len);
 
+  // Print off a hello world message
+  if(verbose)
+  {
+    printf("-- Hello world from processor %s, rank %d out of %d processors\n",
+      processor_name, world_rank + 1, world_size);
+  }
 
-	struct timeval start, stop;
+	struct timeval st, et;
 
 	//Processor number indexes
 	int source, dest;
-
 	int rows, offset;
 
 	//Matrix declarations
@@ -57,28 +72,28 @@ int main (int argc, char const *argv[]){
 	//Master
 	if(world_rank == 0)
 	{
-    if(argc > 1 && strcmp(argv[1], "-p") == 0)
+    if(verbose)
     {
 		    printf("* Start matrix initialization\n");
     }
-		matrix1 = initMatrice();
-		matrix2 = initMatrice();
+		matrix1 = initMatrix();
+		matrix2 = initMatrix();
 
 		if (n != 0)
 		{
 			matrixResultat = (int* )malloc(n*n*sizeof(int));
 			//Test if we have to print arrays
-			if(argc > 1 && strcmp(argv[1], "-p") == 0)
+			if(verbose)
 			{
         printf("\n");
   			printf("* Successfully initialized the matrix\n");
   			printf("* Matrix sizes: %d*%d\n", n,n);
   			printf("\n");
-				printMatrix(matrix1);
-				printMatrix(matrix2);
+				//printMatrix(matrix1);
+				//printMatrix(matrix2);
 			}
 
-			gettimeofday(&start, 0);
+			gettimeofday(&st,NULL);
 			//process
 
 			int num_worker = world_size-1;
@@ -89,7 +104,6 @@ int main (int argc, char const *argv[]){
 
 			for (dest=1; dest<=num_worker; dest++)
 			{
-
 				MPI_Send(&n, 1, MPI_INT, dest, 1, MPI_COMM_WORLD);	//send array size
 				MPI_Send(&offset, 1, MPI_INT, dest, 1, MPI_COMM_WORLD); //send offset
 				MPI_Send(&rows, 1, MPI_INT, dest, 1, MPI_COMM_WORLD); //rsend rows variable
@@ -112,13 +126,19 @@ int main (int argc, char const *argv[]){
 
 			  MPI_Recv(&matrixResultat[offset*n], rows*n, MPI_INT, source, 2, MPI_COMM_WORLD, &status);
 			}
-      if(argc > 1 && strcmp(argv[1], "-p") == 0)
+      if(showMatrix)
       {
 			     printf("Result Matrix: \n");
            printMatrix(matrixResultat);
       }
 
-			gettimeofday(&stop, 0);
+      gettimeofday(&et,NULL);
+      int elapsed = ((et.tv_sec - st.tv_sec) * 1000000) + (et.tv_usec - st.tv_usec);
+      if(showTime)
+      {
+        printf("Execution time : %d micro seconds\n", elapsed);
+        printf("Execution time : %f seconds\n", ((float)elapsed/100000.0));
+      }
 
 			free(matrix1);
 			free(matrix2);
@@ -177,21 +197,24 @@ int main (int argc, char const *argv[]){
 		MPI_Send(&offset, 1, MPI_INT, 0, 2, MPI_COMM_WORLD);
 		MPI_Send(&rows, 1, MPI_INT, 0, 2, MPI_COMM_WORLD);
 		MPI_Send(matrixResultat, rows*n, MPI_INT, 0, 2, MPI_COMM_WORLD);
-    if(argc > 1 && strcmp(argv[1], "-p") == 0)
+    if(verbose)
     {
       printf("-- Worker %s, rank %d, has finished :D\n", processor_name, world_rank, world_size);
     }
+    free(matrix1);
+    free(matrix2);
+    free(matrixResultat);
 	}
 
-    // Finalize the MPI environment.
-    MPI_Finalize();
+  // Finalize the MPI environment.
+  MPI_Finalize();
 
   return 0;
 
 }
 
 // Init array and fill elems with the values
-int* initMatrice()
+int* initMatrix()
 {
 
   int matriceSize;
@@ -213,10 +236,10 @@ int* initMatrice()
 
     for(i=0; i < n; i++)
     {
-		for(j=0; j < n; j++)
-		{
-			scanf("%d", &matrix[i*n+j]);
-		}
+  		for(j=0; j < n; j++)
+  		{
+  			scanf("%d", &matrix[i*n+j]);
+  		}
     }
   }
   return matrix;
@@ -229,11 +252,11 @@ void printMatrix(int* m)
   int i, j;
   for(i=0; i<n; i++)
   {
-	for(j=0; j<n; j++)
-	{
-		printf("%d ", m[i*n+j]);
-	}
-	printf("\n");
+  	for(j=0; j<n; j++)
+  	{
+  		printf("%d ", m[i*n+j]);
+  	}
+  	printf("\n");
   }
   printf("\n");
 }
