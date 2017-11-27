@@ -31,7 +31,7 @@ int main (int argc, char const *argv[]){
       verbose = 1;
     }
     else if(strcmp(argv[argIndex], "-t") == 0){
-      showTime = 1; 
+      showTime = 1;
     }
   }
 
@@ -134,7 +134,6 @@ int main (int argc, char const *argv[]){
 			}
       if(showMatrix)
       {
-			     printf("Result Matrix: \n");
            printMatrix(matrixResultat);
       }
 
