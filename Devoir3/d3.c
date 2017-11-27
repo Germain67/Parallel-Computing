@@ -142,7 +142,7 @@ int main (int argc, char const *argv[]){
       if(showTime)
       {
         printf("Execution time : %d micro seconds\n", elapsed);
-        printf("Execution time : %f seconds\n", ((float)elapsed/100000.0));
+        printf("Execution time : %f seconds\n", ((float)elapsed/1000000.0));
       }
 
 			free(matrix1);
