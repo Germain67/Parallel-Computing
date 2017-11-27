@@ -104,12 +104,18 @@ int main (int argc, char const *argv[]){
 
 			for (dest=1; dest<=num_worker; dest++)
 			{
+        //If this is last row, make it compute all remaining rows
+        if(dest == num_worker){
+          rows = n - offset;
+        }
+        if(verbose){
+         printf("Sending %d rows to task %d offset=%d\n",rows,dest,offset);
+        }
 				MPI_Send(&n, 1, MPI_INT, dest, 1, MPI_COMM_WORLD);	//send array size
 				MPI_Send(&offset, 1, MPI_INT, dest, 1, MPI_COMM_WORLD); //send offset
 				MPI_Send(&rows, 1, MPI_INT, dest, 1, MPI_COMM_WORLD); //rsend rows variable
 				MPI_Send(&matrix1[offset*n], rows*n, MPI_INT,dest,1, MPI_COMM_WORLD); //send the row
 				MPI_Send(matrix2, n*n, MPI_INT, dest, 1, MPI_COMM_WORLD); //send matrix 2
-				MPI_Send(matrixResultat, rows*n, MPI_INT, dest, 1, MPI_COMM_WORLD); //send the result matrix
 				offset = offset + rows;
 			}
 
@@ -174,8 +180,6 @@ int main (int argc, char const *argv[]){
 
 		MPI_Recv(matrix2, n*n, MPI_INT, source, 1, MPI_COMM_WORLD, &status);
 
-		MPI_Recv(matrixResultat, rows*n, MPI_INT, source, 1, MPI_COMM_WORLD, &status);
-
 		int i, j, k;
 
 		/* Matrix multiplication */
@@ -217,20 +221,20 @@ int main (int argc, char const *argv[]){
 int* initMatrix()
 {
 
-  int matriceSize;
+  int matrixSize;
   int i;
   int j;
   int* matrix;
 
   if(n == -1)
   {
-	 scanf("%d", &matriceSize);
+	 scanf("%d", &matrixSize);
   }
 
 
-  if(matriceSize > 0)
+  if(matrixSize > 0)
   {
-    n = matriceSize;
+    n = matrixSize;
 
     matrix = (int* )malloc(n*n*sizeof(int));
 
@@ -244,7 +248,6 @@ int* initMatrix()
   }
   return matrix;
 }
-
 
 //Print the array in stdout
 void printMatrix(int* m)
