@@ -69,6 +69,8 @@ int main (int argc, char const *argv[]){
 	int* matrix2;
 	int* matrixResultat;
 
+  int i, j, k;
+
 	//Master
 	if(world_rank == 0)
 	{
@@ -76,10 +78,8 @@ int main (int argc, char const *argv[]){
     {
 		    printf("* Start matrix initialization\n");
     }
-    //Init in lines
-		matrix1 = initMatrix(0);
-    //Init in columns
-		matrix2 = initMatrix(1);
+		matrix1 = initMatrix();
+		matrix2 = initMatrix();
 
 		if (n != 0)
 		{
@@ -91,25 +91,29 @@ int main (int argc, char const *argv[]){
   			printf("* Successfully initialized the matrix\n");
   			printf("* Matrix sizes: %d*%d\n", n,n);
   			printf("\n");
-				printMatrix(matrix1);
-				printMatrix(matrix2);
+				//printMatrix(matrix1);
+				//printMatrix(matrix2);
 			}
 
 			gettimeofday(&st,NULL);
 			//process
 
-			int num_worker = world_size-1;
-			rows = n/num_worker;
+      //Number of worker including master
+			int num_worker = world_size;
+      //Give one extra row to each worker
+			rows = n/num_worker + 1;
+      int extra_rows = n%num_worker;
 			offset = 0;
 
 			//printf("Worker: %d / n: %d / rows: %d\n", num_worker, n, rows);
 
-			for (dest=1; dest<=num_worker; dest++)
+			for (dest=1; dest<num_worker; dest++)
 			{
-        //If this is last row, make it compute all remaining rows
-        if(dest == num_worker){
-          rows = n - offset;
+        //When all extra rows are treated, reduce number of rows to compute
+        if(extra_rows == 0){
+          rows--;
         }
+        extra_rows--;
         if(verbose){
          printf("Sending %d rows to task %d offset=%d\n",rows,dest,offset);
         }
@@ -117,14 +121,30 @@ int main (int argc, char const *argv[]){
 				MPI_Send(&offset, 1, MPI_INT, dest, 1, MPI_COMM_WORLD); //send offset
 				MPI_Send(&rows, 1, MPI_INT, dest, 1, MPI_COMM_WORLD); //rsend rows variable
 				MPI_Send(&matrix1[offset*n], rows*n, MPI_INT,dest,1, MPI_COMM_WORLD); //send the row
-        MPI_Send(&matrix2[offset*n], rows*n, MPI_INT,dest,1, MPI_COMM_WORLD); //send the row
+				MPI_Send(matrix2, n*n, MPI_INT, dest, 1, MPI_COMM_WORLD); //send matrix 2
 				offset = offset + rows;
 			}
 
-			int i;
+      //Make main thread compute all remaining rows
+  		/* Matrix multiplication */
+  		for (k=0; k<n; k++)
+  		{
+
+  			for (i=0; i<rows; i++)
+  			{
+
+  				matrixResultat[(offset+i)*n + k ] = 0;
+
+  				for (j=0; j<n; j++)
+  				{
+  					//printf("Value analysis: %d = %d + %d * %d\n", (matrixResultat[i*n + k ] + matrix1[i*n + j] * matrix2[j*n + k]), matrixResultat[i*n + k ], matrix1[i*n + j], matrix2[j*n + k]);
+  					matrixResultat[(offset+i)*n + k] = matrixResultat[(offset+i)*n + k] + matrix1[(offset+i)*n + j] * matrix2[j*n + k];
+  				}
+  			}
+  		}
 
 			 /* wait for results from all worker tasks */
-			for (i=1; i<=num_worker; i++)
+			for (i=1; i<num_worker; i++)
 			{
 			  source = i;
 
@@ -174,14 +194,12 @@ int main (int argc, char const *argv[]){
 		MPI_Recv(&rows, 1, MPI_INT, source, 1, MPI_COMM_WORLD, &status);
 
 		matrix1 = (int* )malloc(rows*n*sizeof(int));
-		matrix2 = (int* )malloc(rows*n*sizeof(int));
+		matrix2 = (int* )malloc(n*n*sizeof(int));
 		matrixResultat = (int* )malloc(rows*n*sizeof(int));
 
 		MPI_Recv(matrix1, rows*n, MPI_INT, source, 1, MPI_COMM_WORLD, &status);
 
-		MPI_Recv(matrix2, rows*n, MPI_INT, source, 1, MPI_COMM_WORLD, &status);
-
-		int i, j, k;
+		MPI_Recv(matrix2, n*n, MPI_INT, source, 1, MPI_COMM_WORLD, &status);
 
 		/* Matrix multiplication */
 		for (k=0; k<n; k++)
@@ -192,10 +210,10 @@ int main (int argc, char const *argv[]){
 
 				matrixResultat[i*n + k ] = 0;
 
-        for (j=0; j<n; j++)
+				for (j=0; j<n; j++)
 				{
-					printf("Value analysis (i, j, k) (%d, %d, %d): %d = %d + %d * %d\n", i, j, k, (matrixResultat[i*n + k ] + matrix1[i*n + j] * matrix2[i*n + j]), matrixResultat[i*n + k ], matrix1[i*n + j], matrix2[i*n + j]);
-					matrixResultat[i*n + k] = matrixResultat[i*n + k] + matrix1[k*n + j] * matrix2[i*n + j];
+					//printf("Value analysis: %d = %d + %d * %d\n", (matrixResultat[i*n + k ] + matrix1[i*n + j] * matrix2[j*n + k]), matrixResultat[i*n + k ], matrix1[i*n + j], matrix2[j*n + k]);
+					matrixResultat[i*n + k] = matrixResultat[i*n + k] + matrix1[i*n + j] * matrix2[j*n + k];
 				}
 			}
 		}
@@ -219,7 +237,7 @@ int main (int argc, char const *argv[]){
 }
 
 // Init array and fill elems with the values
-int* initMatrix(int isColumnMatrix)
+int* initMatrix()
 {
 
   int matrixSize;
@@ -243,12 +261,7 @@ int* initMatrix(int isColumnMatrix)
     {
   		for(j=0; j < n; j++)
   		{
-        if(!isColumnMatrix){
-          scanf("%d", &matrix[i*n+j]);
-        }
-        else{
-          scanf("%d", &matrix[j*n+i]);
-        }
+  			scanf("%d", &matrix[i*n+j]);
   		}
     }
   }

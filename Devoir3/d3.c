@@ -69,6 +69,8 @@ int main (int argc, char const *argv[]){
 	int* matrix2;
 	int* matrixResultat;
 
+  int i, j, k;
+
 	//Master
 	if(world_rank == 0)
 	{
@@ -96,18 +98,22 @@ int main (int argc, char const *argv[]){
 			gettimeofday(&st,NULL);
 			//process
 
+      //Number of worker including master
 			int num_worker = world_size-1;
-			rows = n/num_worker;
+      //Give one extra row to each worker
+			rows = n/num_worker + 1;
+      int extra_rows = n%num_worker;
 			offset = 0;
 
 			//printf("Worker: %d / n: %d / rows: %d\n", num_worker, n, rows);
 
 			for (dest=1; dest<=num_worker; dest++)
 			{
-        //If this is last row, make it compute all remaining rows
-        if(dest == num_worker){
-          rows = n - offset;
+        //When all extra rows are treated, reduce number of rows to compute
+        if(extra_rows == 0){
+          rows--;
         }
+        extra_rows--;
         if(verbose){
          printf("Sending %d rows to task %d offset=%d\n",rows,dest,offset);
         }
@@ -119,7 +125,23 @@ int main (int argc, char const *argv[]){
 				offset = offset + rows;
 			}
 
-			int i;
+      //Make main thread compute all remaining rows
+  		/* Matrix multiplication */
+  		/*for (k=0; k<n; k++)
+  		{
+
+  			for (i=0; i<rows; i++)
+  			{
+
+  				matrixResultat[(offset+i)*n + k ] = 0;
+
+  				for (j=0; j<n; j++)
+  				{
+  					//printf("Value analysis: %d = %d + %d * %d\n", (matrixResultat[i*n + k ] + matrix1[i*n + j] * matrix2[j*n + k]), matrixResultat[i*n + k ], matrix1[i*n + j], matrix2[j*n + k]);
+  					matrixResultat[(offset+i)*n + k] = matrixResultat[(offset+i)*n + k] + matrix1[(offset+i)*n + j] * matrix2[j*n + k];
+  				}
+  			}
+  		}*/
 
 			 /* wait for results from all worker tasks */
 			for (i=1; i<=num_worker; i++)
@@ -178,8 +200,6 @@ int main (int argc, char const *argv[]){
 		MPI_Recv(matrix1, rows*n, MPI_INT, source, 1, MPI_COMM_WORLD, &status);
 
 		MPI_Recv(matrix2, n*n, MPI_INT, source, 1, MPI_COMM_WORLD, &status);
-
-		int i, j, k;
 
 		/* Matrix multiplication */
 		for (k=0; k<n; k++)
