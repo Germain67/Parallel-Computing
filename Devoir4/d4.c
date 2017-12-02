@@ -27,6 +27,7 @@ int main (int argc, char const *argv[]){
   int** graph = initMatrix(n);
   generateGraph(graph, n);
   int** result = initMatrix(n);
+  generateGraph(result, n);
 
   printMatrix(graph, n);
 
@@ -112,7 +113,8 @@ int main (int argc, char const *argv[]){
   size_t datasize = n*n*sizeof(int);
 
   cl_mem bufferMatrix;  // Input array on the device
-  cl_mem bufferResult;  // Output array on the device
+
+  //?!?cl_mem bufferResult;  // Output array on the device
 
   // Use clCreateBuffer() to create a buffer object (d_A)
   // that will contain the data from the host array A
@@ -120,7 +122,7 @@ int main (int argc, char const *argv[]){
 
   // Use clCreateBuffer() to create a buffer object (d_B)
   // that will contain the data from the host array B
-  bufferResult = clCreateBuffer(context, CL_MEM_READ_WRITE, datasize, NULL, &status);
+  //?!?bufferResult = clCreateBuffer(context, CL_MEM_READ_WRITE, datasize, NULL, &status);
 
 
   //-----------------------------------------------------
@@ -156,7 +158,7 @@ int main (int argc, char const *argv[]){
 
   printf("Création du kernel\n");
   fflush(stdout);
-  kernel = clCreateKernel(program, "simpleMultiply", &status);
+  kernel = clCreateKernel(program, "floidWarshall", &status);
 
   //-----------------------------------------------------
   // STEP 9: Set the kernel arguments
@@ -169,9 +171,9 @@ int main (int argc, char const *argv[]){
   printf("Passage des paramètres\n");
   fflush(stdout);
 
-  status  = clSetKernelArg(kernel, 0, sizeof(cl_int), (void*) &n);
-  status  = clSetKernelArg(kernel, 1, sizeof(cl_mem), (void*) &bufferMatrix);
-  status = clSetKernelArg(kernel, 2, sizeof(cl_mem), (void*) &bufferResult);
+  status  = clSetKernelArg(kernel, 0, sizeof(cl_mem), (void*) &bufferMatrix);
+  status  = clSetKernelArg(kernel, 1, sizeof(cl_int), (void*) &n);
+  //status = clSetKernelArg(kernel, 2, sizeof(cl_mem), (void*) &bufferResult);
 
 
   //-----------------------------------------------------
@@ -221,7 +223,7 @@ int main (int argc, char const *argv[]){
   //
   //Lecture de la matrice result
   //
-  clEnqueueReadBuffer( cmdQueue, bufferResult, CL_TRUE, 0, datasize, result, 0, NULL, NULL);
+  clEnqueueReadBuffer( cmdQueue, bufferMatrix, CL_TRUE, 0, datasize, result, 0, NULL, NULL);
 
   //-----------------------------------------------------
   // STEP 13: Release OpenCL resources
@@ -232,7 +234,7 @@ int main (int argc, char const *argv[]){
   clReleaseProgram(program);
   clReleaseCommandQueue(cmdQueue);
   clReleaseMemObject(bufferMatrix);
-  clReleaseMemObject(bufferResult);
+  //?!? clReleaseMemObject(bufferResult);
   clReleaseContext(context);
   free(platforms);
   free(devices);

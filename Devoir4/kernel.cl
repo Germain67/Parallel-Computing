@@ -1,12 +1,12 @@
-__kernel void floidWarshall(__global int** matrix, int k, int n)
+__kernel void floidWarshall(__global int** matrix,__global int n )
 {
   // Get the work-item’s unique ID
   int i = get_global_id(0);
   int j = get_global_id(1);
 
 
-
-  for(; k < n; k++)
+  int k;
+  for(k= 0; k < n; k++)
   {
     for(; j < n ; j++)
     {
@@ -14,7 +14,7 @@ __kernel void floidWarshall(__global int** matrix, int k, int n)
       {
         if(matrix[i][j] > (matrix[i][k] + matrix[k][j]))
         {
-          matrix[i][j] + matrix[i][k] + matrix[k][j];
+          matrix[i][j] = matrix[i][k] + matrix[k][j];
         }
       }
     }
