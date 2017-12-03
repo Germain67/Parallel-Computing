@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <time.h>
+#include <sys/time.h>
 #include <sys/stat.h>
 #ifdef __APPLE__
 #include <OpenCL/opencl.h>
@@ -10,26 +10,47 @@
 #endif
 
 //Prototypes
-int** initMatrix(int n);
-void freeMatrix(int** matrix, int n);
-void printMatrix(int** m, int n);
-void generateGraph(int** matrix, int n);
+void printMatrix(int* m, int n);
+void generateGraph(int* matrix, int n);
 char* load_program_source(const char *filename);
+int showMatrix = 0;
+int showTime = 0;
+int verbose = 0;
 
 //Main function
 int main (int argc, char const *argv[]){
+  struct timeval st, et;
+
+  //Check command line arguments
+  int argIndex;
+  int n = 1000;
+  for(argIndex = 1; argIndex < argc; argIndex++){
+    if(strcmp(argv[argIndex], "-p") == 0){
+      showMatrix = 1;
+    }
+    else if(strcmp(argv[argIndex], "-v") == 0){
+      verbose = 1;
+    }
+    else if(strcmp(argv[argIndex], "-t") == 0){
+      showTime = 1;
+    }
+    else if(strcmp(argv[argIndex], "-n") == 0){
+      n = strtol(argv[argIndex+1], NULL, 10);
+    }
+  }
 
   char* programSource = load_program_source("kernel.cl");
   // This code executes on the OpenCL host
-
   //initialisation
-  int n = 4;
-  int** graph = initMatrix(n);
-  generateGraph(graph, n);
-  int** result = initMatrix(n);
-  generateGraph(result, n);
 
-  printMatrix(graph, n);
+  int* graph = malloc(n*n*sizeof(int));
+  generateGraph(graph, n);
+
+  if(showMatrix)
+    printMatrix(graph, n);
+
+  if(verbose)
+    printf("Valeur de n : %d\n", n);
 
   // Use this to check the output of each API call
   cl_int status;
@@ -52,7 +73,8 @@ int main (int argc, char const *argv[]){
 
   char Name[1000];
   clGetPlatformInfo(platforms[0], CL_PLATFORM_NAME, sizeof(Name), Name, NULL);
-  printf("Name of platform : %s\n", Name);
+  if(verbose)
+    printf("Name of platform : %s\n", Name);
   fflush(stdout);
 
   //-----------------------------------------------------
@@ -66,7 +88,8 @@ int main (int argc, char const *argv[]){
   // devices present
   status = clGetDeviceIDs(platforms[0], CL_DEVICE_TYPE_ALL, 0, NULL, &numDevices);
 
-  printf("Number of devices = %d\n", (int)numDevices);
+  if(verbose)
+    printf("Number of devices = %d\n", (int)numDevices);
 
     // Allocate enough space for each device
   devices = (cl_device_id*)malloc(numDevices*sizeof(cl_device_id));
@@ -76,13 +99,15 @@ int main (int argc, char const *argv[]){
 
   for (int i=0; i<numDevices; i++){
       clGetDeviceInfo(devices[i], CL_DEVICE_NAME, sizeof(Name), Name, NULL);
-      printf("Name of device %d: %s\n", i, Name);
+      if(verbose)
+        printf("Name of device %d: %s\n", i, Name);
   }
 
   //-----------------------------------------------------
   // STEP 3: Create a context
   //-----------------------------------------------------
-  printf("Création du contexte\n");
+  if(verbose)
+    printf("Création du contexte\n");
   fflush(stdout);
   cl_context context = NULL;
   // Create a context using clCreateContext() and
@@ -92,8 +117,8 @@ int main (int argc, char const *argv[]){
   //-----------------------------------------------------
   // STEP 4: Create a command queue
   //-----------------------------------------------------
-
-  printf("Création de la file d'attente\n");
+  if(verbose)
+    printf("Création de la file d'attente\n");
   fflush(stdout);
   cl_command_queue cmdQueue;
 
@@ -106,8 +131,8 @@ int main (int argc, char const *argv[]){
   //-----------------------------------------------------
   // STEP 5: Create device buffers
   //-----------------------------------------------------
-
-  printf("Création des buffers\n");
+  if(verbose)
+    printf("Création des buffers\n");
   fflush(stdout);
 
   size_t datasize = n*n*sizeof(int);
@@ -128,7 +153,8 @@ int main (int argc, char const *argv[]){
   //-----------------------------------------------------
   // STEP 6: Write host data to device buffers
   //-----------------------------------------------------
-  printf("Ecriture dans les buffers\n");
+  if(verbose)
+    printf("Ecriture dans les buffers\n");
   fflush(stdout);
 
   status = clEnqueueWriteBuffer(cmdQueue, bufferMatrix, CL_TRUE, 0, datasize, graph, 0, NULL, NULL);
@@ -136,27 +162,42 @@ int main (int argc, char const *argv[]){
   //-----------------------------------------------------
   // STEP 7: Create and compile the program
   //-----------------------------------------------------
-
-  printf("CreateProgramWithSource\n");
+  if(verbose)
+    printf("CreateProgramWithSource\n");
   fflush(stdout);
 
   cl_program program = clCreateProgramWithSource(context,1, (const char**)&programSource, NULL, &status);
 
   //printf("%s\n",programSource);
-
-  printf("Compilation\n");
+  if(verbose)
+    printf("Compilation\n");
   fflush(stdout);
   status = clBuildProgram(program, numDevices, devices, NULL, NULL, NULL);
 
   if (status) printf("ERREUR A LA COMPILATION: %d\n", status);
+
+  if (status == CL_BUILD_PROGRAM_FAILURE) {
+      // Determine the size of the log
+      size_t log_size;
+      clGetProgramBuildInfo(program, devices[0], CL_PROGRAM_BUILD_LOG, 0, NULL, &log_size);
+
+      // Allocate memory for the log
+      char *log = (char *) malloc(log_size);
+
+      // Get the log
+      clGetProgramBuildInfo(program, devices[0], CL_PROGRAM_BUILD_LOG, log_size, log, NULL);
+
+      // Print the log
+      printf("%s\n", log);
+  }
 
   //-----------------------------------------------------
   // STEP 8: Create the kernel
   //-----------------------------------------------------
 
   cl_kernel kernel = NULL;
-
-  printf("Création du kernel\n");
+  if(verbose)
+    printf("Création du kernel\n");
   fflush(stdout);
   kernel = clCreateKernel(program, "floidWarshall", &status);
 
@@ -167,8 +208,8 @@ int main (int argc, char const *argv[]){
   // Associate the input and output buffers with the
   // kernel
   // using clSetKernelArg()
-
-  printf("Passage des paramètres\n");
+  if(verbose)
+    printf("Passage des paramètres\n");
   fflush(stdout);
 
   status  = clSetKernelArg(kernel, 0, sizeof(cl_mem), (void*) &bufferMatrix);
@@ -182,15 +223,18 @@ int main (int argc, char const *argv[]){
 
   // Define an index space (global work size) of work items for execution.
   // A workgroup size (local work size) is not required, but can be used.
-
+  if(verbose)
+    printf("Paramétrage de la structure des work-items\n");
   size_t MaxGroup;
-  clGetDeviceInfo(devices[1],CL_DEVICE_MAX_WORK_GROUP_SIZE, sizeof(size_t), &MaxGroup, NULL);
-  printf("CL_DEVICE_MAX_WORK_GROUP_SIZE = %d\n", (int) MaxGroup);
+  clGetDeviceInfo(devices[0],CL_DEVICE_MAX_WORK_GROUP_SIZE, sizeof(size_t), &MaxGroup, NULL);
+  if(verbose)
+    printf("CL_DEVICE_MAX_WORK_GROUP_SIZE = %d\n", (int) MaxGroup);
 
 
   size_t MaxItems[2];
-  clGetDeviceInfo(devices[1],CL_DEVICE_MAX_WORK_ITEM_SIZES, 2*sizeof(size_t), MaxItems, NULL);
-  printf("CL_DEVICE_MAX_WORK_ITEM_SIZES = (%d, %d)\n", (int) MaxItems[0], (int)MaxItems[1]);
+  clGetDeviceInfo(devices[0],CL_DEVICE_MAX_WORK_ITEM_SIZES, 2*sizeof(size_t), MaxItems, NULL);
+  if(verbose)
+    printf("CL_DEVICE_MAX_WORK_ITEM_SIZES = (%d, %d)\n", (int) MaxItems[0], (int)MaxItems[1]);
 
 
 
@@ -206,16 +250,28 @@ int main (int argc, char const *argv[]){
   // clEnqueueNDRangeKernel().
   // 'globalWorkSize' is the 1D dimension of the
   // work-items
+  gettimeofday(&st,NULL);
 
-  printf("Debut des appels\n");
+  if(verbose)
+    printf("Debut des appels\n");
   status = clEnqueueNDRangeKernel(cmdQueue, kernel, 2, NULL, globalWorkSize, NULL, 0, NULL, NULL);
 
-  printf("Fin premier appel: status=%d\n", status);
+  if(verbose)
+    printf("Fin premier appel: status=%d\n", status);
   clFinish(cmdQueue);  // Pas nécessaire car la pile a été créée "In-order"
 
   status = clEnqueueNDRangeKernel( cmdQueue, kernel, 2, NULL, globalWorkSize, localWorkSize, 0, NULL, NULL);
-  printf("Fin second appel: status=%d\n", status);
+  if(verbose)
+    printf("Fin second appel: status=%d\n", status);
 
+  gettimeofday(&et,NULL);
+
+  int elapsed = ((et.tv_sec - st.tv_sec) * 1000000) + (et.tv_usec - st.tv_usec);
+  if(showTime)
+  {
+    printf("Execution time : %d micro seconds\n", elapsed);
+    printf("Execution time : %f seconds\n", ((float)elapsed/1000000.0));
+  }
   //-----------------------------------------------------
   // STEP 12: Read the output buffer back to the host
   //-----------------------------------------------------
@@ -223,7 +279,11 @@ int main (int argc, char const *argv[]){
   //
   //Lecture de la matrice result
   //
-  clEnqueueReadBuffer( cmdQueue, bufferMatrix, CL_TRUE, 0, datasize, result, 0, NULL, NULL);
+  clEnqueueReadBuffer( cmdQueue, bufferMatrix, CL_TRUE, 0, datasize, graph, 0, NULL, NULL);
+
+  //Step 12.5 : Print the result matrix
+  if(showMatrix)
+    printMatrix(graph, n);
 
   //-----------------------------------------------------
   // STEP 13: Release OpenCL resources
@@ -238,15 +298,15 @@ int main (int argc, char const *argv[]){
   clReleaseContext(context);
   free(platforms);
   free(devices);
-  freeMatrix(graph, n);
-  freeMatrix(result, n);
+  free(graph);
+  //free(result);
 
   return 0;
 
 }
 
 //Generate the adjacence graph
-void generateGraph(int** matrix, int n)
+void generateGraph(int* matrix, int n)
 {
   int i, j;
   for(i=0; i < n; i++)
@@ -254,51 +314,27 @@ void generateGraph(int** matrix, int n)
     for(j=0; j < n; j++)
     {
       if(i == j){
-        matrix[i][j] = 0;
+        matrix[i*n + j] = 0;
       }
       else if((i + 1 == j) || (j == 0 && i == n-1)){
-        matrix[i][j] = 1;
+        matrix[i*n + j] = 1;
       }
       else{
-        matrix[i][j] = n+1;
+        matrix[i*n + j] = n+1;
       }
     }
   }
 }
 
-//Initialise the matrix in the memory
-int** initMatrix(int n)
-{
-  int** res = malloc(n*sizeof(int*));
-  int i, j;
-
-  for(i=0; i < n; i++)
-  {
-    res[i]=malloc(n*sizeof(int));
-  }
-  return res;
-}
-
-//Free the matrix
-void freeMatrix(int** matrix, int n)
-{
-  int i;
-  for(i=0; i < n; i++)
-  {
-    free(matrix[i]);
-  }
-  free(matrix);
-}
-
 //Print the matrix
-void printMatrix(int** matrix, int n)
+void printMatrix(int* matrix, int n)
 {
   int i, j;
   for(i=0; i<n; i++)
   {
   	for(j=0; j<n; j++)
   	{
-  		printf("%d ", matrix[i][j]);
+  		printf("%d ", matrix[i*n + j]);
   	}
   	printf("\n");
   }
