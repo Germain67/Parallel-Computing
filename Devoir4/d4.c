@@ -230,16 +230,13 @@ int main (int argc, char const *argv[]){
   if(verbose)
     printf("CL_DEVICE_MAX_WORK_GROUP_SIZE = %d\n", (int) MaxGroup);
 
-
-  size_t MaxItems[2];
-  clGetDeviceInfo(devices[0],CL_DEVICE_MAX_WORK_ITEM_SIZES, 2*sizeof(size_t), MaxItems, NULL);
+  size_t MaxItems[3];
+  clGetDeviceInfo(devices[0],CL_DEVICE_MAX_WORK_ITEM_SIZES, 3*sizeof(size_t), MaxItems, NULL);
   if(verbose)
-    printf("CL_DEVICE_MAX_WORK_ITEM_SIZES = (%d, %d)\n", (int) MaxItems[0], (int)MaxItems[1]);
-
-
+    printf("CL_DEVICE_MAX_WORK_ITEM_SIZES = (%d, %d, %d)\n", (int) MaxItems[0], (int)MaxItems[1], (int)MaxItems[2]);
 
   size_t globalWorkSize[2]={n, n};
-  size_t localWorkSize[3]={20,20};
+  //size_t localWorkSize[3]={32, 32};
   // There are 'elements' work-items
 
   //-----------------------------------------------------
@@ -253,24 +250,23 @@ int main (int argc, char const *argv[]){
   gettimeofday(&st,NULL);
 
   if(verbose)
-    printf("Debut des appels\n");
+    printf("Debut de l'appel\n");
   status = clEnqueueNDRangeKernel(cmdQueue, kernel, 2, NULL, globalWorkSize, NULL, 0, NULL, NULL);
 
   if(verbose)
-    printf("Fin premier appel: status=%d\n", status);
+    printf("Fin de l\'appel: status=%d\n", status);
   clFinish(cmdQueue);  // Pas nécessaire car la pile a été créée "In-order"
 
-  status = clEnqueueNDRangeKernel( cmdQueue, kernel, 2, NULL, globalWorkSize, localWorkSize, 0, NULL, NULL);
+  /* status = clEnqueueNDRangeKernel( cmdQueue, kernel, 2, NULL, globalWorkSize, localWorkSize, 0, NULL, NULL);
   if(verbose)
-    printf("Fin second appel: status=%d\n", status);
+    printf("Fin second appel: status=%d\n", status); */
 
   gettimeofday(&et,NULL);
 
   int elapsed = ((et.tv_sec - st.tv_sec) * 1000000) + (et.tv_usec - st.tv_usec);
   if(showTime)
   {
-    printf("Execution time : %d micro seconds\n", elapsed);
-    printf("Execution time : %f seconds\n", ((float)elapsed/1000000.0));
+    printf("Execution time : %d micro seconds; %f seconds\n", elapsed, ((float)elapsed/1000000.0));
   }
   //-----------------------------------------------------
   // STEP 12: Read the output buffer back to the host
