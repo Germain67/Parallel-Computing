@@ -247,21 +247,29 @@ int main (int argc, char const *argv[]){
   // clEnqueueNDRangeKernel().
   // 'globalWorkSize' is the 1D dimension of the
   // work-items
+
+
+  if(verbose)
+    printf("Debut des appels\n");
+  //status = clEnqueueNDRangeKernel(cmdQueue, kernel, 2, NULL, globalWorkSize, NULL, 0, NULL, NULL);
+
   gettimeofday(&st,NULL);
 
-  if(verbose)
-    printf("Debut de l'appel\n");
-  status = clEnqueueNDRangeKernel(cmdQueue, kernel, 2, NULL, globalWorkSize, NULL, 0, NULL, NULL);
+  int k;
+  for(k = 0; k<n; k++){
+      clSetKernelArg(kernel, 2, sizeof(int), (void *)&k);
+      clEnqueueNDRangeKernel(cmdQueue,kernel,2,NULL,globalWorkSize,NULL,0,NULL,NULL);
+  }
+
+  gettimeofday(&et,NULL);
 
   if(verbose)
-    printf("Fin de l\'appel: status=%d\n", status);
+    printf("Fin des appels: status=%d\n", status);
   clFinish(cmdQueue);  // Pas nécessaire car la pile a été créée "In-order"
 
   /* status = clEnqueueNDRangeKernel( cmdQueue, kernel, 2, NULL, globalWorkSize, localWorkSize, 0, NULL, NULL);
   if(verbose)
     printf("Fin second appel: status=%d\n", status); */
-
-  gettimeofday(&et,NULL);
 
   int elapsed = ((et.tv_sec - st.tv_sec) * 1000000) + (et.tv_usec - st.tv_usec);
   if(showTime)
