@@ -1,4 +1,4 @@
-# uqac8inf856_de_dust2
+# Parallel-Computing (UQAC)
 
 MPi:
 
